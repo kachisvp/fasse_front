@@ -4,12 +4,14 @@ publish_to: "none"
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.5.3
+  sdk: '>=3.5.3 < 4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
+  flutter_dotenv: ^5.1.0
   cupertino_icons: ^1.0.8
+  http: ^1.2.2
 
 dev_dependencies:
   flutter_test:
