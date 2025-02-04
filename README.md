@@ -2,7 +2,237 @@
 
 <summary>Mac環境構築</summary>
 
-work in progress...
+
+# Mac環境構築
+## Google Chrome
+Google Chromeがインストールされていないと、[flutter doctor -v]が終了しないため、インストールする
+
+
+## Git
+### install
+brew install git
+
+
+### Terminalを開き、versionを確認
+git --version
+
+
+### Git初期設定
+git config --global user.name "Namae Myoji"
+git config --global user.email "_username_@example.com"
+
+
+## SourceTree
+### install
+公式サイトからダウンロード、インストール
+
+
+### Git Credential Manager
+[Git Credential Manager]をinstallしないと、pushするのにtokenが必要になる
+[Git for Windows]の場合、[Git]のinstall時に一緒にinstallされる
+```
+brew install --cask git-credential-manager
+```
+
+
+## Flutter SDK
+### install
+[/Users/_username_/dev/flutter]となる様に保存
+
+
+### PATHに追加
+```
+vi ~/.zshrc
+export PATH=${HOME}/dev/flutter/bin:${PATH}
+source ~/.zshrc
+```
+
+
+### Flutterが利用可能になったことを確認
+Terminalを開き、以下のコマンドを実行
+```
+flutter --version
+flutter doctor -v
+```
+
+
+
+## OpenJDK
+### install
+brew search openjdk
+brew install openjdk@21
+
+
+### PATHに追加
+```
+vi ~/.zshrc
+export PATH=/usr/local/opt/openjdk@21/bin:${PATH}
+source ~/.zshrc
+```
+
+
+### Terminalを開き、versionを確認
+java --version
+
+
+
+## Visual Studio Code
+### install
+すべてデフォルトでインストール
+
+
+### システム環境変数に以下を追加
+```
+vi ~/.zshrc
+export SPRING_PROFILES_ACTIVE_local
+source ~/.zshrc
+```
+
+
+### Visual Studio Code Settings
+~~Java設定の必要があるかを確認する~~
+
+
+### Extensions
+以下を検索して[install]を押下
+- Flutter
+- Extension Pack for Java
+- Gradle for Java
+- Spring Boot Extension Pack
+
+
+
+## MySQL
+### install
+defaulではMySQL9.2がinstallされてしまうため、versionを指定
+```
+brew search mysql
+
+brew install mysql@8.4
+brew info mysql
+```
+
+### PATHに追加
+```
+vi ~/.zshrc
+export PATH=/usr/local/opt/mysql@8.4/bin:${PATH}
+source ~/.zshrc
+```
+
+### Terminalを開き、versionを確認
+mysql --version
+
+
+### command
+mysql.server start
+mysql.server restart
+mysql.server stop
+
+
+### databaseを作成
+初回はパスワードなしでログイン
+```
+mysql -uroot
+set password for root@localhost='_任意のパスワード_';
+quit
+```
+
+2回目以降は[_任意のパスワード_]を入力
+```
+mysql -u root -p
+create user admin identified by '_任意のパスワード_';
+create database fasse;
+grant all on fasse.* to admin;
+grant select, insert on fasse.* to admin;
+quit
+```
+
+
+### VSCode Extensions
+以下を検索して[install]を押下
+- MySQL Shell for VS Code
+
+左の[MySQL Shell for VS Code]を押下
+[New Connection]を押下
+以下を入力して[OK]を押下
+```
+Caption: fasse
+Username: admin
+```
+左の[DATABASE CONNECTION] > [fasse]を右クリック > [Open New Database Connection]を押下
+install時の[_任意のパスワード_]を入力
+
+
+### [fasse]の[DB Notebook]が開いたらバージョンを確認
+以下を入力し、[Cmd + Enter]を押下
+```
+select version();
+```
+
+
+### 動作確認用のschema, dataを投入
+以下を入力し、[Cmd + Enter]を押下
+```
+use fasse
+[./src/test/resources/schema.sql]を開く > 全選択 > 貼り付け > [Cmd + Enter]を押下
+[./src/test/resources/data.sql]を開く > 全選択 > 貼り付け > [Cmd + Enter]を押下
+```
+
+
+
+# Visual Studio Code 動作確認手順
+## SpringBoot
+[fasse_back]プロジェクトを[Git Clone]
+[fasse_back]プロジェクトを[Visual Studio Code]で開く
+
+
+### application.yaml設定
+[src/main/resources/application.yaml]をコピーして[src/main/resources/application-local.yaml]を作成
+以下を修正
+```
+_dbname_: fasse
+_username_: admin
+_password_: [_任意のパスワード_]
+```
+
+
+### gradlewに実行権限を付与
+```
+chmod +x ./gradlew
+```
+[src/main/java/com/example/fasse_back/FasseBackApplication.java]をデバッグ実行
+[http://localhost:8080/users]にアクセスし、[m_user]からJSONデータを取得することを確認
+
+
+
+## Flutter
+[fasse_front]プロジェクトを[Git Clone]
+[fasse_front]プロジェクトを[Visual Studio Code]で開く
+[Ctrl + @]を押下して[Terminal]を開く
+以下のコマンドを実行する
+```
+flutter clean
+flutter pub get
+flutter build web
+flutter run -d chrome
+```
+
+
+### CORS対応
+Flutter-SpringBootをローカル環境で連携すると、[CORS: Cross-Origin Resource Sharing]で止められるため、開発用に以下を修正
+
+[~/dev/flutter/packages/flutter_tools/lib/src/web/chrome.dart]を開く
+```
+      '--disable-extensions',
+      '--disable-web-security', // 開発用にこの行を追加
+```
+
+[~/dev/flutter/bin/cacheflutter_tools.stamp]を削除
+**ビルド時に再作成されるファイルのため、削除しても問題ない**
+
+
+ChromeでFlutterアプリが動作することを確認
+
 
 </details>
 
@@ -176,6 +406,14 @@ install時の[_任意のパスワード_]を入力
 select version();
 ```
 
+
+### 動作確認用のschema, dataを投入
+以下を入力し、[Cmd + Enter]を押下
+```
+use fasse
+[./src/test/resources/schema.sql]を開く > 全選択 > 貼り付け > [Cmd + Enter]を押下
+[./src/test/resources/data.sql]を開く > 全選択 > 貼り付け > [Cmd + Enter]を押下
+```
 
 
 # Visual Studio Code 動作確認手順
