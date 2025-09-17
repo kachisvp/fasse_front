@@ -42,7 +42,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     try {
       final response = await http.get(
-        Uri.parse("http://localhost:8080/users"),
+        Uri.parse("http://localhost:8080/foodcompositions"),
         headers: <String, String>{
           "Content-Type": "application/json",
         },
@@ -96,7 +96,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 : ListView.builder(
                     itemCount: _userList.length,
                     itemBuilder: (BuildContext context, int index) {
-                      return Text(_userList[index]["userName"]);
+                      return Text(_userList[index]["foodNm"]);
                     },
                   ),
           ),
