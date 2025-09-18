@@ -36,8 +36,8 @@ class _MyHomePageState extends State<MyHomePage> {
   String _message = "";
   List<Map<String, dynamic>> _userList = [];
 
-  // [m_user]からデータを取得
-  Future<String> _getUsers() async {
+  // [m_food_composition]からデータを取得
+  Future<String> _getFoodcompositions() async {
     var client = http.Client();
 
     try {
@@ -55,11 +55,16 @@ class _MyHomePageState extends State<MyHomePage> {
 
       return response.body;
     } catch (e) {
-      _message = e.toString();
-      return "";
+      // WebAPIで取得できない場合、DummyDataを返す
+      return _getDummyData();
     } finally {
       client.close();
     }
+  }
+
+  Future<String> _getDummyData() async {
+    // FIXME "assets/foodcompositions.zip"を解凍してDummyDataを返す
+    return '[{"foodNm": "こめ"}]';
   }
 
   // 画面を再描画
@@ -69,7 +74,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _message = "";
       _userList = [];
 
-      String result = await _getUsers();
+      String result = await _getFoodcompositions();
       _userList = List<Map<String, dynamic>>.from(json.decode(result));
     } catch (e) {
       _message = e.toString();
