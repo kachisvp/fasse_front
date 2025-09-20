@@ -132,11 +132,11 @@ git config --global user.email "_username_@example.com"
 
 ### install
 
-[C:\Users_username\_\dev\flutter\]となる様に保存
+[C:\Users\'_username_'\dev\flutter\]となる様に保存
 
 ### システム環境変数に以下を追加
 
-PATH=%PATH%;"C:\Users_username\_\dev\flutter\bin"
+PATH=%PATH%;"C:\Users\'_username_'\dev\flutter\bin"
 
 ### Flutter が利用可能になっていることを確認
 
