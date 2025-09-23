@@ -75,9 +75,9 @@ flutter doctor -v
 
 - Flutter
 
-# Visual Studio Code 動作確認手順
+## Visual Studio Code 動作確認手順
 
-## Flutter
+### Flutter
 
 [fasse_front]プロジェクトを[Git Clone]
 [fasse_front]プロジェクトを[Visual Studio Code]で開く
@@ -174,9 +174,9 @@ flutter doctor -v
 
 - Flutter
 
-# Visual Studio Code 動作確認手順
+## Visual Studio Code 動作確認手順
 
-## Flutter
+### Flutter
 
 [fasse_front]プロジェクトを[Git Clone]
 [fasse_front]プロジェクトを[Visual Studio Code]で開く
