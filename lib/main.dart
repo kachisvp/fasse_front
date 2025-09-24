@@ -34,7 +34,9 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   String _message = "";
-  List<Map<String, dynamic>> _userList = [];
+  List<Map<String, dynamic>> _dataList = [];
+  List<DataColumn> _labels = [];
+  List<DataRow> _values = [];
 
   // [m_food_composition]からデータを取得
   Future<String> _getFoodcompositions() async {
@@ -55,6 +57,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
       return response.body;
     } catch (e) {
+      _message = e.toString();
+
       // WebAPIで取得できない場合、DummyDataを返す
       return _getDummyData();
     } finally {
@@ -72,10 +76,27 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       // 初期化
       _message = "";
-      _userList = [];
+      _labels = [];
+      _values = [];
 
       String result = await _getFoodcompositions();
-      _userList = List<Map<String, dynamic>>.from(json.decode(result));
+      _dataList = List<Map<String, dynamic>>.from(json.decode(result));
+
+      _labels = List<DataColumn>.generate(
+          7, (int index) => DataColumn(label: Text("$index")),
+          growable: false);
+
+      _values = List<DataRow>.generate(_dataList.length, (int index) {
+        return DataRow(cells: [
+          DataCell(Text(_dataList[index]["foodNm"])),
+          DataCell(Text(_dataList[index]["enercKcal"].toString())),
+          DataCell(Text(_dataList[index]["prot"].toString())),
+          DataCell(Text(_dataList[index]["chole"].toString())),
+          DataCell(Text(_dataList[index]["fat"].toString())),
+          DataCell(Text(_dataList[index]["chocdf"].toString())),
+          DataCell(Text(_dataList[index]["vitc"].toString())),
+        ]);
+      }, growable: false);
     } catch (e) {
       _message = e.toString();
     }
@@ -85,6 +106,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final Size size = MediaQuery.of(context).size;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -94,15 +117,17 @@ class _MyHomePageState extends State<MyHomePage> {
         children: [
           SelectableText(_message),
           SizedBox(
-            width: 768,
-            height: 432,
-            child: (_userList.isEmpty)
+            width: size.width,
+            height: size.height - 80,
+            child: (_dataList.isEmpty)
                 ? const Text("")
-                : ListView.builder(
-                    itemCount: _userList.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return Text(_userList[index]["foodNm"]);
-                    },
+                : ListView(
+                    children: [
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(columns: _labels, rows: _values),
+                      )
+                    ],
                   ),
           ),
         ],
