@@ -1,5 +1,29 @@
 <details>
 
+<summary>よく使うコマンド</summary>
+
+# Mac
+
+```
+flutter clean
+flutter pub get
+flutter build web
+flutter run -d chrome
+```
+
+# Windows
+
+```
+flutter clean
+flutter pub get
+flutter build web
+flutter run -d chrome
+```
+
+</details>
+
+<details>
+
 <summary>Mac環境構築</summary>
 
 # Mac 環境構築
