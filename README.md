@@ -93,9 +93,10 @@ flutter doctor -v
 
 すべてデフォルトでインストール
 
-### Extensions
+### VSCode Extensions
 
-以下を検索して[install]を押下
+[Visual Studio Code] > [左側の Extensions]を押下
+[Search Extensions in Marketplace]で以下を検索して[install]を押下
 
 - Flutter
 
@@ -192,9 +193,10 @@ flutter doctor -v
 }
 ```
 
-### Extensions
+### VSCode Extensions
 
-以下を検索して[install]を押下
+[Visual Studio Code] > [左側の Extensions]を押下
+[Search Extensions in Marketplace]で以下を検索して[install]を押下
 
 - Flutter
 
