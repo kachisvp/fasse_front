@@ -25,6 +25,13 @@ class ApiClient {
         'Content-Type': 'application/json',
       };
 
+  /// JSONレスポンスは常にUTF-8として扱う（RFC 8259）。
+  /// サーバーのContent-Typeにcharset指定が無いと`response.body`はLatin-1として
+  /// decodeされ文字化けするため、`bodyBytes`から明示的にUTF-8 decodeする。
+  static dynamic decodeJson(http.Response response) {
+    return jsonDecode(utf8.decode(response.bodyBytes));
+  }
+
   static Future<http.Response> get(String path, {Map<String, String>? queryParameters}) async {
     final response = await _client.get(_buildUri(path, queryParameters), headers: _headers);
     _throwOnError(response);
@@ -71,7 +78,7 @@ class ApiClient {
 
     var message = 'HTTP $status';
     try {
-      final body = jsonDecode(response.body);
+      final body = decodeJson(response);
       if (body is Map<String, dynamic> && body['message'] is String) {
         message = body['message'] as String;
       }

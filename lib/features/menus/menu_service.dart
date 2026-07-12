@@ -1,18 +1,16 @@
-import 'dart:convert';
-
 import '../../shared/api_client.dart';
 import '../../shared/models/menu.dart';
 
 class MenuService {
   static Future<List<Menu>> fetchMenus() async {
     final response = await ApiClient.get('/menus');
-    final data = jsonDecode(response.body) as List<dynamic>;
+    final data = ApiClient.decodeJson(response) as List<dynamic>;
     return data.map((dynamic json) => Menu.fromJson(json as Map<String, dynamic>)).toList();
   }
 
   static Future<Menu> createMenu(Menu menu) async {
     final response = await ApiClient.post('/menus', menu.toJson());
-    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    final json = ApiClient.decodeJson(response) as Map<String, dynamic>;
     return Menu.fromJson(json);
   }
 
@@ -21,7 +19,7 @@ class MenuService {
       throw ApiException('Menu id is required for update');
     }
     final response = await ApiClient.put('/menus/${menu.id}', menu.toJson());
-    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    final json = ApiClient.decodeJson(response) as Map<String, dynamic>;
     return Menu.fromJson(json);
   }
 

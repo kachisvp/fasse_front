@@ -30,6 +30,10 @@ Flutter アプリを feature-first で整理し、API 呼び出しは `lib/confi
 - `package:http` を利用して REST API を呼び出す
 - 例: `GET /items`, `POST /purchases`, `GET /sales?from=...&to=...`
 - レスポンスのエラー時は `Exception` を投げ、画面側でハンドリングする
+- JSON レスポンスは RFC 8259 により常に UTF-8 であるため、`response.body` は使わず
+  `utf8.decode(response.bodyBytes)` で明示的に decode してから `jsonDecode` する
+  （サーバーの `Content-Type` に `charset` が無いと `response.body` は Latin-1 として
+  decode され文字化けするため）
 
 ## ディレクトリ構成
 
