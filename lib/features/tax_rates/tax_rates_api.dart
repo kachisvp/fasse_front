@@ -1,4 +1,5 @@
 import '../../shared/api/api_client.dart';
+import '../../shared/api/api_parse.dart';
 import '../../shared/models/tax_category.dart';
 import 'tax_rate.dart';
 
@@ -12,12 +13,14 @@ class TaxRatesApi {
       '/tax-rates',
       queryParameters: taxCategory == null ? null : {'tax_category': taxCategory.apiValue},
     ) as List<dynamic>;
-    return result.map((e) => TaxRate.fromJson(e as Map<String, dynamic>)).toList();
+    return parseApiResponse(
+      () => result.map((e) => TaxRate.fromJson(e as Map<String, dynamic>)).toList(),
+    );
   }
 
   Future<TaxRate> create(TaxRate taxRate) async {
     final result = await _client.post('/tax-rates', body: taxRate.toCreateJson());
-    return TaxRate.fromJson(result as Map<String, dynamic>);
+    return parseApiResponse(() => TaxRate.fromJson(result as Map<String, dynamic>));
   }
 
   Future<TaxRate> update(TaxRate taxRate) async {
@@ -25,7 +28,7 @@ class TaxRatesApi {
       '/tax-rates/${taxRate.taxCategory.apiValue}/${taxRate.validFrom}',
       body: taxRate.toUpdateJson(),
     );
-    return TaxRate.fromJson(result as Map<String, dynamic>);
+    return parseApiResponse(() => TaxRate.fromJson(result as Map<String, dynamic>));
   }
 
   Future<void> delete(TaxCategory taxCategory, String validFrom) =>

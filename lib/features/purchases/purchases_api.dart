@@ -1,4 +1,5 @@
 import '../../shared/api/api_client.dart';
+import '../../shared/api/api_parse.dart';
 import '../../shared/utils/date_format.dart';
 import 'purchase.dart';
 
@@ -12,22 +13,24 @@ class PurchasesApi {
       '/purchases',
       queryParameters: {'from': formatIsoDate(from), 'to': formatIsoDate(to)},
     ) as List<dynamic>;
-    return result.map((e) => Purchase.fromJson(e as Map<String, dynamic>)).toList();
+    return parseApiResponse(
+      () => result.map((e) => Purchase.fromJson(e as Map<String, dynamic>)).toList(),
+    );
   }
 
   Future<Purchase> get(String id) async {
     final result = await _client.get('/purchases/$id');
-    return Purchase.fromJson(result as Map<String, dynamic>);
+    return parseApiResponse(() => Purchase.fromJson(result as Map<String, dynamic>));
   }
 
   Future<Purchase> create(Purchase purchase) async {
     final result = await _client.post('/purchases', body: purchase.toJson());
-    return Purchase.fromJson(result as Map<String, dynamic>);
+    return parseApiResponse(() => Purchase.fromJson(result as Map<String, dynamic>));
   }
 
   Future<Purchase> update(String id, Purchase purchase) async {
     final result = await _client.put('/purchases/$id', body: purchase.toJson());
-    return Purchase.fromJson(result as Map<String, dynamic>);
+    return parseApiResponse(() => Purchase.fromJson(result as Map<String, dynamic>));
   }
 
   Future<void> delete(String id) => _client.delete('/purchases/$id');

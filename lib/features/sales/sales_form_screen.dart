@@ -78,6 +78,13 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
     _loadFuture = _load();
   }
 
+  void _retryLoad() {
+    setState(() {
+      _initialized = false;
+      _loadFuture = _load();
+    });
+  }
+
   @override
   void dispose() {
     _tableNoController.dispose();
@@ -291,6 +298,7 @@ class _SalesFormScreenState extends State<SalesFormScreen> {
       appBar: AppBar(title: Text(_isEdit ? '売上伝票の変更' : '売上伝票の追加')),
       body: AsyncValueBuilder<_SalesFormData>(
         future: _loadFuture,
+        onRetry: _retryLoad,
         builder: (context, data) {
           _initializeFromData(data);
           final lines = _taxableLines();

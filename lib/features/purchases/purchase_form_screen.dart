@@ -78,6 +78,13 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     _loadFuture = _load();
   }
 
+  void _retryLoad() {
+    setState(() {
+      _initialized = false;
+      _loadFuture = _load();
+    });
+  }
+
   @override
   void dispose() {
     _remarksController.dispose();
@@ -286,6 +293,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       appBar: AppBar(title: Text(_isEdit ? '仕入伝票の変更' : '仕入伝票の追加')),
       body: AsyncValueBuilder<_PurchaseFormData>(
         future: _loadFuture,
+        onRetry: _retryLoad,
         builder: (context, data) {
           _initializeFromData(data);
           final lines = _taxableLines();
