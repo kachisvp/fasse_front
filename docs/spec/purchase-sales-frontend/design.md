@@ -128,6 +128,11 @@ lib/
 flutter run --dart-define=API_BASE_URL=https://<api-id>.execute-api.<region>.amazonaws.com/stg
 ```
 
+- API のベース URL は `--dart-define=API_BASE_URL=...` を優先する
+- `--dart-define` を指定しない場合（`flutter run -d chrome`等でのローカル開発時）は、`.env` の `API_BASE_URL` にフォールバックする（`flutter_dotenv` を使用。`.env` が存在しない場合は読み込みをスキップし、次のフォールバックに進む）
+- どちらも無い場合は `http://localhost:8080` をデフォルト値とする
+- 優先順位: `--dart-define` > `.env` > デフォルト値
+
 ## 状態管理
 
 - 初期実装では `setState` ベース
