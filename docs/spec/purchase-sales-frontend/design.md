@@ -32,6 +32,44 @@ Flutter アプリを feature-first で整理し、API 呼び出しは `lib/confi
 - 例: `GET /items`, `POST /purchases`, `GET /sales?from=...&to=...`, `GET /tax-rates?tax_category=STANDARD`, `PUT /tax-rates/{taxCategory}/{validFrom}`
 - レスポンスのエラー時（HTTPステータスが200番台以外）は `ApiException` を投げ、画面側でハンドリングする
 
+## 認証
+
+認証基盤（JWT発行API・KMS署名・Cognitoとの連携）自体の設計は `../../../fasse_infra/docs/spec/authentication/` のdesign.md/requirements.mdを参照する。本節ではFlutter Web側の実装方針を記載する。
+
+### 起動時のフロー
+
+`AuthGate`（`lib/features/auth/`）が`MyApp`の`home`をラップし、以下の順序で判定する。
+
+1. `Uri.base`を確認し、Cognitoログインからのcallback（認可コード付きURL）を検知した場合、`code_verifier`（後述のPKCE）を用いてCognito Token Endpointへ交換リクエストを行いID Tokenを取得し、ルートB（`POST /auth/token/cognito`）でJWTを取得する
+2. SecureStorageに有効期限内（`exp`未経過）のJWTがあれば再利用する
+3. `.env`の`ACCESS_KEY`が設定されていれば、ルートA（`POST /auth/token`）へ自動送信する
+   - 成功: JWTを保存してアプリ本体を表示する
+   - 失敗（401・通信エラー）: 4へフォールバックする
+4. ログイン画面（`LoginScreen`）を表示し、「Cognitoでログイン」ボタン押下でCognito Hosted UIへの認証フローを開始する
+
+この判定は静的なビルドフレーバー分岐ではなく、実行時の状態（AccessKeyの有無・成否）に基づいて行う。`.env`にAccessKeyを含めないstg向けビルドでは手順3が常にスキップされ手順4へ進むため、fasse_infra側のREQ-302/303（`ENV=local`はAccessKey、それ以外はCognito）と同等の挙動になる。
+
+### Cognito Hosted UIとの連携（Authorization Code Grant + PKCE）
+
+- `flutter_web_auth_2`パッケージを利用し、`FlutterWebAuth2.authenticate(url: authorizeUrl, callbackUrlScheme: ...)`でCognito Hosted UIを別ウィンドウ（ポップアップ）で開く。メインのFlutterアプリはリロードされず、Dartの状態（PKCEの`code_verifier`含む）はメモリ上に保持されたまま認証完了を待機できる
+- 認可URLは以下の要素で組み立てる: `response_type=code`, `client_id`, `redirect_uri`, `scope=openid+email`, `code_challenge`（PKCE, S256）, `state`（CSRF対策用ランダム値）
+- Cognitoからのリダイレクト先（`redirect_uri`）は、Flutterのルーティングとは独立した静的ファイル`web/auth_callback.html`とする。これによりS3等の静的ホスティング側でSPA用のパスフォールバック設定を追加する必要がない
+- 認証完了後に得られる`code`を、Cognitoの`/oauth2/token`エンドポイントへ`grant_type=authorization_code`・`code_verifier`とともにPOSTし、ID Tokenを取得する（クライアントシークレットを持たないpublicクライアントとして構成する。fasse_infra側のCognito App Client設定が前提）
+- 将来のモバイル対応（第四弾）時は、`callbackUrlScheme`をカスタムスキームに切り替えるのみとし、PKCE生成・Token Endpoint交換・ルートB呼び出し・SecureStorage保存・`AuthGate`のロジックは変更不要とする設計とする（第四弾で追加が必要なのは、Cognito App Clientへのモバイル用callback URL登録と、Android/iOSのURL Scheme設定のみを想定する）
+
+### JWTの付与・失効時の挙動
+
+- `ApiClient`（`lib/shared/api/api_client.dart`）に、SecureStorageから読み込んだJWTを全リクエストの`Authorization: Bearer <JWT>`ヘッダーへ付与する処理を追加する
+- レスポンスが401の場合、`ApiException`をそのまま投げるのではなく、認証系の共通ハンドラ（`AuthController`）を通じて以下を行う
+  - AccessKeyが利用可能であれば自動的にルートAで再取得し、元のリクエストを1回だけリトライする
+  - 再取得に失敗する場合、またはAccessKeyが無い場合はSecureStorageのJWTを破棄し、`AuthGate`経由でログイン画面へ遷移させる
+
+### PKCE
+
+- `code_verifier`: 暗号学的乱数から生成する43〜128文字のランダム文字列
+- `code_challenge`: `code_verifier`をSHA-256でハッシュ化しBase64URLエンコードした値（`code_challenge_method=S256`）
+- Web版では別ウィンドウ内で認証が完結し呼び出し元アプリはリロードされないため、`code_verifier`はメモリ上に保持するのみでよく、`sessionStorage`等への永続化は不要とする
+
 ## APIレスポンスのパースエラー処理
 
 - バックエンドAPIは必須項目のチェックを行わないため（「クライアント側バリデーション方針」参照）、過去に別スキーマ・別経路（Postman等）で登録された不整合なデータ（例: 消費税対応前に登録され `tax_rate` を持たない仕入/売上明細）が既存データとして存在しうる
@@ -119,6 +157,7 @@ lib/
   config/
     app_config.dart
   features/
+    auth/
     items/
     suppliers/
     menus/
@@ -138,6 +177,12 @@ flutter run --dart-define=API_BASE_URL=https://<api-id>.execute-api.<region>.ama
 - `--dart-define` を指定しない場合（`flutter run -d chrome`等でのローカル開発時）は、`.env` の `API_BASE_URL` にフォールバックする（`flutter_dotenv` を使用。`.env` が存在しない場合は読み込みをスキップし、次のフォールバックに進む）
 - どちらも無い場合は `http://localhost:8080` をデフォルト値とする
 - 優先順位: `--dart-define` > `.env` > デフォルト値
+
+### AccessKey（`.env`）
+
+- `ACCESS_KEY`は`.env`にのみ保持し、`--dart-define`では注入しない（Gitにコミットしない値のため、ビルドコマンドの引数には残さない）
+- ローカル開発時は`.env`にAccessKeyを設定することで、起動時に自動的にJWTを取得できる（「認証」節参照）
+- stg向けビルド（`flutter build web --dart-define=...`）を行う際は、`.env`に実際のAccessKeyを含めないこと。`pubspec.yaml`の`assets`に`.env`が含まれるため、ビルド時は値を空にするか`.env.dummy`相当の内容にする（fasse_infra側のNFR-003/REQ-306に対応する運用ルール）
 
 ## 状態管理
 
