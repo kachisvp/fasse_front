@@ -47,7 +47,10 @@
 - [x] `web/auth_callback.html`: Cognitoからのリダイレクト受け先の静的ページを追加する（`flutter_web_auth_2`のWeb向けセットアップに準拠）
 - [x] `lib/main.dart`: `AuthGate`を組み込む
 - [x] `lib/shared/api/api_client.dart`: Authorizationヘッダー付与、401時の自動再取得・ログイン誘導を実装する
-- [x] `.env.dummy`に`ACCESS_KEY`・`COGNITO_DOMAIN`・`COGNITO_CLIENT_ID`のダミー値を追加する
+- [x] `.env.dummy`に`ACCESS_KEY`・`COGNITO_DOMAIN`・`COGNITO_CLIENT_ID`・`COGNITO_CALLBACK_ORIGIN`のダミー値を追加する
 - [x] `flutter analyze` / `flutter test` を通す（`test/widget_test.dart`は`AuthGate`を経由しないよう`HomeScreen`を直接pumpする形に修正）
-- [ ] （前提条件・fasse_infra側対応）Cognito App Client（publicクライアント・Authorization Code + PKCE）・Hosted UIドメイン・Callback URL（`web/auth_callback.html`のURL）の設定を依頼する
-- [ ] stg環境で疎通確認する（AccessKeyパス・Cognitoパスの双方、および401時の再取得動作）
+- [x] Cognitoログインのredirect_uri/`debugOrigin`を`COGNITO_CALLBACK_ORIGIN`（stg配信ドメイン固定）に切り替える。ローカル開発時の`--web-port`固定・開発者ごとのcallback URL個別登録を不要にする（fasse_infra側で登録するcallback URLを1件に固定できる。design.md「Cognito Hosted UIとの連携」参照）
+- [x] stg環境でAccessKeyパス（ルートA）を疎通確認する（`.env`にstg登録済みのAccessKeyを設定し、`品目マスタ`一覧の取得・更新まで確認済み）
+- [x] stg環境でCognitoパス（ルートB）を疎通確認する（`--web-port=5000`固定＋fasse_infra側`cognitoCallbackUrls`にlocalhost:5000を登録する暫定方式で、ログイン〜品目更新まで確認済み）
+- [ ] `COGNITO_CALLBACK_ORIGIN`（`debugOrigin`）方式に切り替え後、Cognitoパスを再検証する（fasse_infra側のCognito App Clientのcallback URLをstg配信ドメインの1件に絞り込んだうえで確認する）
+- [ ] 401時の自動再取得・ログイン誘導動作を確認する（JWT期限切れ、または`JWT_PUBLIC_KEY_PEM`未設定等で401を発生させて確認する）

@@ -53,13 +53,16 @@ Flutter アプリを feature-first で整理し、API 呼び出しは `lib/confi
 - `flutter_web_auth_2`パッケージを利用し、`FlutterWebAuth2.authenticate(url: authorizeUrl, callbackUrlScheme: ...)`でCognito Hosted UIを別ウィンドウ（ポップアップ）で開く。メインのFlutterアプリはリロードされず、Dartの状態（PKCEの`code_verifier`含む）はメモリ上に保持されたまま認証完了を待機できる
 - 認可URLは以下の要素で組み立てる: `response_type=code`, `client_id`, `redirect_uri`, `scope=openid+email`, `code_challenge`（PKCE, S256）, `state`（CSRF対策用ランダム値）
 - Cognitoからのリダイレクト先（`redirect_uri`）は、Flutterのルーティングとは独立した静的ファイル`web/auth_callback.html`とする。これによりS3等の静的ホスティング側でSPA用のパスフォールバック設定を追加する必要がない
+- `redirect_uri`のoriginは、`.env`/`--dart-define`の`COGNITO_CALLBACK_ORIGIN`（stg配信ドメイン等の固定値）を使う。これにより**Cognito App Clientへ登録するcallback URLは1件のみ**（`$COGNITO_CALLBACK_ORIGIN/auth_callback.html`）で済み、ローカル開発時のポート番号（`flutter run -d chrome`は起動のたびにランダムなポートを割り当てる）に依存しない
+- `FlutterWebAuth2.authenticate()`呼び出し時、`options: FlutterWebAuth2Options(debugOrigin: COGNITO_CALLBACK_ORIGIN)`を指定する。`flutter_web_auth_2`のWeb実装は、Cognitoからのredirect完了を`postMessage`で受け取る際に送信元originを検証しており、デフォルトでは実行中のorigin（`Uri.base.origin`）としか一致しない。`debugOrigin`はこの検証対象originを明示的に上書きするためのオプションで、パッケージが公式に想定する用途（「リダイレクト先が実行中アプリと別ドメインになるローカルテスト等」）そのものである
+  - `COGNITO_CALLBACK_ORIGIN`未設定の場合は`Uri.base.origin`にフォールバックする。この場合、ローカル開発時は`--web-port`を固定し、その固定ポートのURL（例: `http://localhost:5000/auth_callback.html`）をCognito App Clientのcallback URLに個別登録する必要がある（`COGNITO_CALLBACK_ORIGIN`設定前の暫定手段）
 - 認証完了後に得られる`code`を、Cognitoの`/oauth2/token`エンドポイントへ`grant_type=authorization_code`・`code_verifier`とともにPOSTし、ID Tokenを取得する（クライアントシークレットを持たないpublicクライアントとして構成する。fasse_infra側のCognito App Client設定が前提）
 - 将来のモバイル対応（第四弾）時は、`callbackUrlScheme`をカスタムスキームに切り替えるのみとし、PKCE生成・Token Endpoint交換・ルートB呼び出し・SecureStorage保存・`AuthGate`のロジックは変更不要とする設計とする（第四弾で追加が必要なのは、Cognito App Clientへのモバイル用callback URL登録と、Android/iOSのURL Scheme設定のみを想定する）
 
 ### JWTの付与・失効時の挙動
 
 - `ApiClient`（`lib/shared/api/api_client.dart`）に、SecureStorageから読み込んだJWTを全リクエストの`Authorization: Bearer <JWT>`ヘッダーへ付与する処理を追加する
-- レスポンスが401の場合、`ApiException`をそのまま投げるのではなく、認証系の共通ハンドラ（`AuthController`）を通じて以下を行う
+- レスポンスが401の場合、`ApiException`をそのまま投げるのではなく、認証系の共通ハンドラ（`AuthSession`。`appLogger`と同様のトップレベル単一インスタンス）を通じて以下を行う
   - AccessKeyが利用可能であれば自動的にルートAで再取得し、元のリクエストを1回だけリトライする
   - 再取得に失敗する場合、またはAccessKeyが無い場合はSecureStorageのJWTを破棄し、`AuthGate`経由でログイン画面へ遷移させる
 
@@ -183,10 +186,11 @@ flutter run --dart-define=API_BASE_URL=https://<api-id>.execute-api.<region>.ama
 - ローカル開発時は`.env`にAccessKeyを設定することで、起動時に自動的にJWTを取得できる（「認証」節参照）
 - stg向けビルド（`flutter build web --dart-define=...`）を行う際は、`.env`に実際のAccessKeyを含めないこと。`pubspec.yaml`の`assets`に`.env`が含まれるため、ビルド時は値を空にするか`.env.dummy`相当の内容にする（fasse_infra側のNFR-003/REQ-306に対応する運用ルール）
 
-### Cognito設定（`COGNITO_DOMAIN` / `COGNITO_CLIENT_ID`）
+### Cognito設定（`COGNITO_DOMAIN` / `COGNITO_CLIENT_ID` / `COGNITO_CALLBACK_ORIGIN`）
 
-- `COGNITO_DOMAIN`（Hosted UIのドメイン）・`COGNITO_CLIENT_ID`（publicクライアントのApp Client ID）は`.env`または`--dart-define`のいずれでも注入できる（`API_BASE_URL`と同じ優先順位: `--dart-define` > `.env`）。機密情報ではないため`--dart-define`でビルドコマンドに含めてもよい
+- `COGNITO_DOMAIN`（Hosted UIのドメイン）・`COGNITO_CLIENT_ID`（publicクライアントのApp Client ID）・`COGNITO_CALLBACK_ORIGIN`（`auth_callback.html`を配信する固定origin）は`.env`または`--dart-define`のいずれでも注入できる（`API_BASE_URL`と同じ優先順位: `--dart-define` > `.env`）。機密情報ではないため`--dart-define`でビルドコマンドに含めてもよい
 - 未設定の場合、ログイン画面で「Cognitoでログイン」を押下してもエラーとなる（fasse_infra側でCognito App Clientが構築され次第、値を設定する）
+- `COGNITO_CALLBACK_ORIGIN`にはstg配信ドメイン（例: `https://<stg配信ドメイン>`）を設定する。stgビルド・ローカル開発のいずれもこの値をCognitoへのredirect_uriのoriginとして使う（「Cognito Hosted UIとの連携」参照）ため、fasse_infra側で登録が必要なcallback URLはこの1件のみでよい
 
 ## 状態管理
 

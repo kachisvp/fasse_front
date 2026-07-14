@@ -21,7 +21,11 @@ class AuthRepository {
 
   /// Cognitoからのredirect先。Flutterのルーティングとは独立した静的ページとする
   /// （docs/spec/purchase-sales-frontend/design.md「Cognito Hosted UIとの連携」参照）。
-  String get _redirectUri => '${Uri.base.origin}/auth_callback.html';
+  /// `COGNITO_CALLBACK_ORIGIN`が設定されていればその固定origin（stg配信ドメイン等）を使い、
+  /// 未設定の場合は実行中のorigin（ローカル開発時はポート固定＋callback URL個別登録が必要）を使う。
+  String get _redirectOrigin => AppConfig.cognitoCallbackOrigin ?? Uri.base.origin;
+
+  String get _redirectUri => '$_redirectOrigin/auth_callback.html';
 
   /// ルートA（AccessKey）: `.env`のAccessKeyでJWTを取得する。
   /// AccessKey未設定の場合はnullを返し、呼び出し側でCognitoへフォールバックする。
@@ -68,6 +72,10 @@ class AuthRepository {
       resultUrl = await FlutterWebAuth2.authenticate(
         url: authorizeUrl.toString(),
         callbackUrlScheme: 'https',
+        // `auth_callback.html`のorigin（stg配信ドメイン等）と実行中のorigin（ローカル開発時のlocalhost:<port>）
+        // が異なる場合でも、`postMessage`の送信元originとして扱われるよう明示的に指定する。
+        // 未設定（null）の場合は`Uri.base.origin`が使われる（パッケージ側のデフォルト挙動）。
+        options: FlutterWebAuth2Options(debugOrigin: AppConfig.cognitoCallbackOrigin),
       );
     } catch (e, stackTrace) {
       appLogger.e('Cognitoログインに失敗しました', error: e, stackTrace: stackTrace);
