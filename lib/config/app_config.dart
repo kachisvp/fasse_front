@@ -14,4 +14,28 @@ class AppConfig {
     if (dotenvValue != null && dotenvValue.isNotEmpty) return dotenvValue;
     return 'http://localhost:8080';
   }
+
+  /// ルートA（AccessKey認証）用のAccessKey。`.env`にのみ保持し、`--dart-define`では注入しない
+  /// （docs/spec/purchase-sales-frontend/design.md「AccessKey（.env）」参照）。
+  /// 未設定の場合はルートAを利用せず、Cognitoログインへフォールバックする。
+  static String? get accessKey {
+    final value = dotenv.env['ACCESS_KEY'];
+    return (value == null || value.isEmpty) ? null : value;
+  }
+
+  /// Cognito Hosted UIのドメイン（例: `https://<prefix>.auth.<region>.amazoncognito.com`）
+  static const String _dartDefineCognitoDomain = String.fromEnvironment('COGNITO_DOMAIN');
+  static String? get cognitoDomain =>
+      _resolve(dartDefineValue: _dartDefineCognitoDomain, dotenvKey: 'COGNITO_DOMAIN');
+
+  /// Cognito App Client ID（publicクライアント）
+  static const String _dartDefineCognitoClientId = String.fromEnvironment('COGNITO_CLIENT_ID');
+  static String? get cognitoClientId =>
+      _resolve(dartDefineValue: _dartDefineCognitoClientId, dotenvKey: 'COGNITO_CLIENT_ID');
+
+  static String? _resolve({required String dartDefineValue, required String dotenvKey}) {
+    if (dartDefineValue.isNotEmpty) return dartDefineValue;
+    final dotenvValue = dotenv.env[dotenvKey];
+    return (dotenvValue == null || dotenvValue.isEmpty) ? null : dotenvValue;
+  }
 }

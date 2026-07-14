@@ -38,15 +38,16 @@
 
 ## 5. 認証機能実装（第二弾: Web + API Gateway + Lambda + DynamoDB）
 
-- [ ] `pubspec.yaml`に`flutter_secure_storage`・`flutter_web_auth_2`・`crypto`を追加する
-- [ ] `lib/features/auth/pkce.dart`: code_verifier/code_challenge生成を実装する
-- [ ] `lib/features/auth/auth_repository.dart`: ルートA（`/auth/token`）・ルートB（`/auth/token/cognito`）・Cognito Token Endpoint交換を実装する
-- [ ] `lib/features/auth/auth_controller.dart`: 起動時判定フロー（callback検知→SecureStorage確認→AccessKey試行→Cognitoログインへフォールバック）を実装する
-- [ ] `lib/features/auth/login_screen.dart`: Cognitoログインボタン画面を実装する
-- [ ] `lib/features/auth/auth_gate.dart`: 上記を`MyApp`の`home`にラップする
-- [ ] `web/auth_callback.html`: Cognitoからのリダイレクト受け先の静的ページを追加する
-- [ ] `lib/main.dart`: `AuthGate`を組み込む
-- [ ] `lib/shared/api/api_client.dart`: Authorizationヘッダー付与、401時の自動再取得・ログイン誘導を実装する
-- [ ] `.env.dummy`に`ACCESS_KEY`のダミー値を追加する
+- [x] `pubspec.yaml`に`flutter_secure_storage`・`flutter_web_auth_2`・`crypto`を追加する
+- [x] `lib/features/auth/pkce.dart`: code_verifier/code_challenge生成を実装する
+- [x] `lib/features/auth/auth_repository.dart`: ルートA（`/auth/token`）・ルートB（`/auth/token/cognito`）・Cognito Token Endpoint交換を実装する
+- [x] `lib/features/auth/auth_session.dart`: 起動時判定フロー（SecureStorage確認→AccessKey試行→Cognitoログインへフォールバック）・401時のハンドリングを実装する（設計時点の`auth_controller.dart`から改称。`ApiClient`と共有する単一インスタンスとして実装）
+- [x] `lib/features/auth/login_screen.dart`: Cognitoログインボタン画面を実装する
+- [x] `lib/features/auth/auth_gate.dart`: 上記を`MyApp`の`home`にラップする
+- [x] `web/auth_callback.html`: Cognitoからのリダイレクト受け先の静的ページを追加する（`flutter_web_auth_2`のWeb向けセットアップに準拠）
+- [x] `lib/main.dart`: `AuthGate`を組み込む
+- [x] `lib/shared/api/api_client.dart`: Authorizationヘッダー付与、401時の自動再取得・ログイン誘導を実装する
+- [x] `.env.dummy`に`ACCESS_KEY`・`COGNITO_DOMAIN`・`COGNITO_CLIENT_ID`のダミー値を追加する
+- [x] `flutter analyze` / `flutter test` を通す（`test/widget_test.dart`は`AuthGate`を経由しないよう`HomeScreen`を直接pumpする形に修正）
 - [ ] （前提条件・fasse_infra側対応）Cognito App Client（publicクライアント・Authorization Code + PKCE）・Hosted UIドメイン・Callback URL（`web/auth_callback.html`のURL）の設定を依頼する
 - [ ] stg環境で疎通確認する（AccessKeyパス・Cognitoパスの双方、および401時の再取得動作）

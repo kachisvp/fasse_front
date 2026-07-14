@@ -40,14 +40,13 @@ Flutter アプリを feature-first で整理し、API 呼び出しは `lib/confi
 
 `AuthGate`（`lib/features/auth/`）が`MyApp`の`home`をラップし、以下の順序で判定する。
 
-1. `Uri.base`を確認し、Cognitoログインからのcallback（認可コード付きURL）を検知した場合、`code_verifier`（後述のPKCE）を用いてCognito Token Endpointへ交換リクエストを行いID Tokenを取得し、ルートB（`POST /auth/token/cognito`）でJWTを取得する
-2. SecureStorageに有効期限内（`exp`未経過）のJWTがあれば再利用する
-3. `.env`の`ACCESS_KEY`が設定されていれば、ルートA（`POST /auth/token`）へ自動送信する
+1. SecureStorageに有効期限内（`exp`未経過）のJWTがあれば再利用する
+2. `.env`の`ACCESS_KEY`が設定されていれば、ルートA（`POST /auth/token`）へ自動送信する
    - 成功: JWTを保存してアプリ本体を表示する
-   - 失敗（401・通信エラー）: 4へフォールバックする
-4. ログイン画面（`LoginScreen`）を表示し、「Cognitoでログイン」ボタン押下でCognito Hosted UIへの認証フローを開始する
+   - 失敗（401・通信エラー）: 3へフォールバックする
+3. ログイン画面（`LoginScreen`）を表示し、「Cognitoでログイン」ボタン押下でCognito Hosted UIへの認証フローを開始する。`flutter_web_auth_2`が別ウィンドウ（ポップアップ）で認証を完結させ、完了後に直接ID Token交換・ルートB呼び出しへ進む。アプリ本体はリロードされないため、起動時に`Uri.base`からcallbackを検知する処理は不要
 
-この判定は静的なビルドフレーバー分岐ではなく、実行時の状態（AccessKeyの有無・成否）に基づいて行う。`.env`にAccessKeyを含めないstg向けビルドでは手順3が常にスキップされ手順4へ進むため、fasse_infra側のREQ-302/303（`ENV=local`はAccessKey、それ以外はCognito）と同等の挙動になる。
+この判定は静的なビルドフレーバー分岐ではなく、実行時の状態（AccessKeyの有無・成否）に基づいて行う。`.env`にAccessKeyを含めないstg向けビルドでは手順2が常にスキップされ手順3へ進むため、fasse_infra側のREQ-302/303（`ENV=local`はAccessKey、それ以外はCognito）と同等の挙動になる。
 
 ### Cognito Hosted UIとの連携（Authorization Code Grant + PKCE）
 
@@ -183,6 +182,11 @@ flutter run --dart-define=API_BASE_URL=https://<api-id>.execute-api.<region>.ama
 - `ACCESS_KEY`は`.env`にのみ保持し、`--dart-define`では注入しない（Gitにコミットしない値のため、ビルドコマンドの引数には残さない）
 - ローカル開発時は`.env`にAccessKeyを設定することで、起動時に自動的にJWTを取得できる（「認証」節参照）
 - stg向けビルド（`flutter build web --dart-define=...`）を行う際は、`.env`に実際のAccessKeyを含めないこと。`pubspec.yaml`の`assets`に`.env`が含まれるため、ビルド時は値を空にするか`.env.dummy`相当の内容にする（fasse_infra側のNFR-003/REQ-306に対応する運用ルール）
+
+### Cognito設定（`COGNITO_DOMAIN` / `COGNITO_CLIENT_ID`）
+
+- `COGNITO_DOMAIN`（Hosted UIのドメイン）・`COGNITO_CLIENT_ID`（publicクライアントのApp Client ID）は`.env`または`--dart-define`のいずれでも注入できる（`API_BASE_URL`と同じ優先順位: `--dart-define` > `.env`）。機密情報ではないため`--dart-define`でビルドコマンドに含めてもよい
+- 未設定の場合、ログイン画面で「Cognitoでログイン」を押下してもエラーとなる（fasse_infra側でCognito App Clientが構築され次第、値を設定する）
 
 ## 状態管理
 

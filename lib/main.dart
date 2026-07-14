@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import 'features/auth/auth_gate.dart';
 import 'features/home/home_screen.dart';
 import 'shared/logging/app_logger.dart';
 
@@ -26,7 +27,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const HomeScreen(),
+      home: const AuthGate(child: HomeScreen()),
       debugShowCheckedModeBanner: false,
     );
   }
