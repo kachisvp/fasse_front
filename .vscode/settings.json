@@ -1,0 +1,4 @@
+{
+  // launch.json の web-server デバイスを使うため、ローカル環境でも web-server デバイスを表示する
+  "dart.flutterShowWebServerDevice": "always"
+}
