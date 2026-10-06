@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../config/app_config.dart';
 import '../../shared/api/api_exception.dart';
 import '../../shared/logging/app_logger.dart';
 import 'auth_repository.dart';
@@ -12,21 +13,33 @@ enum AuthStatus { loading, authenticated, needsLogin }
 /// `appLogger`と同様にトップレベルの単一インスタンス（[authSession]）として扱う。
 /// フロー詳細は docs/spec/purchase-sales-frontend/design.md「認証」参照。
 class AuthSession extends ChangeNotifier {
-  AuthSession({AuthRepository? repository, JwtStore? jwtStore})
+  AuthSession({AuthRepository? repository, JwtStore? jwtStore, bool? authDisabled})
     : _repository = repository ?? AuthRepository(),
-      _jwtStore = jwtStore ?? JwtStore();
+      _jwtStore = jwtStore ?? JwtStore(),
+      authDisabled = authDisabled ?? AppConfig.authDisabled;
 
   final AuthRepository _repository;
   final JwtStore _jwtStore;
+
+  /// 認証無効モード（ローカルAPIサーバー接続用）かどうか。
+  final bool authDisabled;
 
   AuthStatus status = AuthStatus.loading;
   String? errorMessage;
 
   /// アプリ起動時のJWT取得フロー。
+  /// 0. 認証無効モードであれば、JWTを取得せずにアプリ本体を表示する
   /// 1. SecureStorageに有効なJWTがあれば再利用
   /// 2. `.env`のAccessKeyがあればルートAへ自動送信
   /// 3. いずれも無い/失敗した場合はログイン画面（Cognito誘導）を表示する
   Future<void> bootstrap() async {
+    if (authDisabled) {
+      appLogger.w('認証無効モード（DISABLE_AUTH）で起動しました。APIリクエストに認証情報を付与しません');
+      status = AuthStatus.authenticated;
+      notifyListeners();
+      return;
+    }
+
     status = AuthStatus.loading;
     notifyListeners();
 
@@ -72,7 +85,9 @@ class AuthSession extends ChangeNotifier {
   /// `ApiClient`が401を受信した際に呼び出す。
   /// AccessKeyが利用可能であれば自動的に再取得し、リクエストのリトライを許可する。
   /// 失敗する場合、またはAccessKeyが無い場合はJWTを破棄し、ログイン画面へ遷移させる。
+  /// 認証無効モードでは状態を変更せず`false`を返す（ログイン画面へ遷移させない）。
   Future<bool> handleUnauthorized() async {
+    if (authDisabled) return false;
     try {
       final jwt = await _repository.issueTokenByAccessKey();
       if (jwt != null) {

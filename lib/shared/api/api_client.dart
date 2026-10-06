@@ -14,12 +14,28 @@ import 'api_exception.dart';
 /// 401応答時はAccessKeyでの自動再取得・失敗時のログイン誘導を行う
 /// （docs/spec/purchase-sales-frontend/design.md「JWTの付与・失効時の挙動」参照）。
 /// ルートA/ルートB自身（[AuthRepository]内部）は認証対象外のため`attachAuth: false`で呼び出す。
+/// 認証無効モード（[authDisabled]）では、JWTの付与・401時の再取得をいずれも行わない
+/// （docs/spec/purchase-sales-frontend/design.md「認証無効モード（ローカル開発用）」参照）。
 class ApiClient {
-  ApiClient({http.Client? httpClient, this.attachAuth = true})
-    : _httpClient = httpClient ?? http.Client();
+  ApiClient({
+    http.Client? httpClient,
+    this.attachAuth = true,
+    bool? authDisabled,
+    AuthSession? session,
+  }) : _httpClient = httpClient ?? http.Client(),
+       authDisabled = authDisabled ?? AppConfig.authDisabled,
+       _injectedSession = session;
 
   final http.Client _httpClient;
   final bool attachAuth;
+  final bool authDisabled;
+  final AuthSession? _injectedSession;
+
+  /// トップレベルの[authSession]は、その初期化中に`AuthRepository`経由で[ApiClient]を生成するため、
+  /// コンストラクタでは参照せず使用時に解決する（循環初期化の回避）。
+  AuthSession get _session => _injectedSession ?? authSession;
+
+  bool get _shouldAuthenticate => attachAuth && !authDisabled;
 
   static const Map<String, String> _jsonHeaders = {
     'Content-Type': 'application/json; charset=utf-8',
@@ -63,8 +79,8 @@ class ApiClient {
 
   Future<Map<String, String>> _headers([Map<String, String>? base]) async {
     final headers = {...?base};
-    if (!attachAuth) return headers;
-    final jwt = await authSession.currentJwt();
+    if (!_shouldAuthenticate) return headers;
+    final jwt = await _session.currentJwt();
     if (jwt != null) headers['Authorization'] = 'Bearer $jwt';
     return headers;
   }
@@ -82,8 +98,8 @@ class ApiClient {
       return response;
     }
 
-    if (attachAuth && response.statusCode == 401 && !isRetry) {
-      final recovered = await authSession.handleUnauthorized();
+    if (_shouldAuthenticate && response.statusCode == 401 && !isRetry) {
+      final recovered = await _session.handleUnauthorized();
       if (recovered) {
         return _send(request, isRetry: true);
       }

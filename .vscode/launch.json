@@ -1,12 +1,23 @@
 {
-  // ローカルの fasse_back との接続確認用の起動構成
-  // 1. 「① stg で JWT 取得」で起動し、Chrome で http://localhost:5000 を開いてログインまで完了させる
-  // 2. 停止後「② fasse_back 接続」で起動し、同じ Chrome で http://localhost:5000 を開く（保存済み JWT が再利用される）
-  // JWT は http://localhost:5000 のオリジンに保存されるため、ポートとブラウザを変えないこと
+  // 起動後、Chrome で http://localhost:5000 を開く
+  // fasse_back 接続時はローカルの fasse_back が認証不要のため、DISABLE_AUTH=true で認証処理をスキップする
+  // （docs/spec/purchase-sales-frontend/design.md「認証無効モード（ローカル開発用）」参照）
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "① stg で JWT 取得",
+      "name": "fasse_back 接続 (localhost:8080)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "deviceId": "web-server",
+      "args": [
+        "--web-port=5000",
+        "--dart-define=API_BASE_URL=http://localhost:8080",
+        "--dart-define=DISABLE_AUTH=true"
+      ]
+    },
+    {
+      "name": "stg 接続",
       "type": "dart",
       "request": "launch",
       "program": "lib/main.dart",
@@ -14,17 +25,6 @@
       "args": [
         "--web-port=5000",
         "--dart-define=API_BASE_URL=https://ut8q9ugul0.execute-api.ap-northeast-1.amazonaws.com/stg/"
-      ]
-    },
-    {
-      "name": "② fasse_back 接続 (localhost:8080)",
-      "type": "dart",
-      "request": "launch",
-      "program": "lib/main.dart",
-      "deviceId": "web-server",
-      "args": [
-        "--web-port=5000",
-        "--dart-define=API_BASE_URL=http://localhost:8080"
       ]
     }
   ]

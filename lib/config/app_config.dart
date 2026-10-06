@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AppConfig {
@@ -14,6 +15,11 @@ class AppConfig {
     if (dotenvValue != null && dotenvValue.isNotEmpty) return dotenvValue;
     return 'http://localhost:8080';
   }
+
+  /// 認証無効モード（ローカルAPIサーバー接続用）。`--dart-define=DISABLE_AUTH=true`指定時のみ有効。
+  /// `.env`からは読み込まず、リリースビルドでは常に`false`とする
+  /// （docs/spec/purchase-sales-frontend/design.md「認証無効モード（ローカル開発用）」参照）。
+  static const bool authDisabled = bool.fromEnvironment('DISABLE_AUTH') && !kReleaseMode;
 
   /// ルートA（AccessKey認証）用のAccessKey。`.env`にのみ保持し、`--dart-define`では注入しない
   /// （docs/spec/purchase-sales-frontend/design.md「AccessKey（.env）」参照）。

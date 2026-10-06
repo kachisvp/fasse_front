@@ -73,6 +73,7 @@ Flutter アプリを feature-first で整理し、API 呼び出しは `lib/confi
   - `bool.fromEnvironment('DISABLE_AUTH') && !kReleaseMode`とする。`--dart-define=DISABLE_AUTH=true`指定時のみ有効で、リリースビルドでは常に`false`になる
   - コンパイル時定数とし、`.env`からは読み込まない（`.env`はアセットとしてビルド成果物に含まれるため、誤設定でstg向け成果物の認証が外れることを防ぐ）
 - `AuthSession`・`ApiClient`はコンストラクタ引数`authDisabled`（省略時`AppConfig.authDisabled`）で判定値を受け取る。単体テストで両モードを切り替えて検証できるようにするため
+- 同じ理由で、`ApiClient`はコンストラクタ引数`session`（省略時はトップレベルの`authSession`）で`AuthSession`を受け取る
 - `AuthSession`
   - `bootstrap()`: 認証無効モードでは、WARNログ（認証無効モードで起動した旨）を出力し、ただちに`AuthStatus.authenticated`とする。`JwtStore`・`AuthRepository`は呼び出さない
   - `handleUnauthorized()`: 認証無効モードでは呼び出されない前提とするが、呼び出された場合も状態を変更せず`false`を返す（ログイン画面へ遷移させない）

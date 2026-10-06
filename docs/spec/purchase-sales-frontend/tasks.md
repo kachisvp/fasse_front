@@ -54,11 +54,11 @@
 
 ## 6. 認証無効モード（ローカル開発用）
 
-- [ ] `lib/config/app_config.dart`: `authDisabled`（`bool.fromEnvironment('DISABLE_AUTH') && !kReleaseMode`）を追加する
-- [ ] `lib/features/auth/auth_session.dart`: コンストラクタ引数`authDisabled`を追加し、`bootstrap()`で認証無効時はWARNログ出力のうえ即`authenticated`とする。`handleUnauthorized()`は認証無効時に状態を変更せず`false`を返す
-- [ ] `lib/shared/api/api_client.dart`: コンストラクタ引数`authDisabled`を追加し、認証無効時は`Authorization`ヘッダー付与と401時の再取得を行わない
-- [ ] `.vscode/launch.json`: 「fasse_back 接続 (localhost:8080)」に`--dart-define=DISABLE_AUTH=true`を追加し、stgでJWTを取得してから切り替える手順（「stg で JWT 取得」構成とコメント）を整理する
-- [ ] テスト: `test/features/auth/auth_session_test.dart`を追加する（認証無効時: 即`authenticated`になり`JwtStore`・`AuthRepository`が呼ばれない／`handleUnauthorized()`が`false`を返しログイン画面へ遷移しない。認証有効時: 既存フロー（保存済みJWT再利用・AccessKey試行・`needsLogin`）が維持される）
-- [ ] テスト: `test/shared/api/api_client_test.dart`を追加する（`MockClient`を用い、認証無効時に`Authorization`ヘッダーが付与されないこと・401が`ApiException`として送出されること、認証有効時にヘッダーが付与されること）
-- [ ] `flutter analyze` / `flutter test` を通す
-- [ ] ローカル（`localhost:8080`）で、ログイン画面を経由せず各画面の一覧取得ができることを確認する
+- [x] `lib/config/app_config.dart`: `authDisabled`（`bool.fromEnvironment('DISABLE_AUTH') && !kReleaseMode`）を追加する
+- [x] `lib/features/auth/auth_session.dart`: コンストラクタ引数`authDisabled`を追加し、`bootstrap()`で認証無効時はWARNログ出力のうえ即`authenticated`とする。`handleUnauthorized()`は認証無効時に状態を変更せず`false`を返す
+- [x] `lib/shared/api/api_client.dart`: コンストラクタ引数`authDisabled`を追加し、認証無効時は`Authorization`ヘッダー付与と401時の再取得を行わない
+- [x] `.vscode/launch.json`: 「fasse_back 接続 (localhost:8080)」に`--dart-define=DISABLE_AUTH=true`を追加し、stgでJWTを取得してから切り替える手順（「stg で JWT 取得」構成とコメント）を整理する
+- [x] テスト: `test/features/auth/auth_session_test.dart`を追加する（認証無効時: 即`authenticated`になり`JwtStore`・`AuthRepository`が呼ばれない／`handleUnauthorized()`が`false`を返しログイン画面へ遷移しない。認証有効時: 既存フロー（保存済みJWT再利用・AccessKey試行・`needsLogin`）が維持される）
+- [x] テスト: `test/shared/api/api_client_test.dart`を追加する（`MockClient`を用い、認証無効時に`Authorization`ヘッダーが付与されないこと・401が`ApiException`として送出されること、認証有効時にヘッダーが付与されること）
+- [x] `flutter analyze` / `flutter test` を通す
+- [x] ローカル（`localhost:8080`）で、ログイン画面を経由せず各画面の一覧取得ができることを確認する
