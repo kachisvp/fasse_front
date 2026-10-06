@@ -40,6 +40,7 @@ Flutter アプリを feature-first で整理し、API 呼び出しは `lib/confi
 
 `AuthGate`（`lib/features/auth/`）が`MyApp`の`home`をラップし、以下の順序で判定する。
 
+0. 認証無効モード（`AppConfig.authDisabled`が`true`）であれば、以降の判定を行わずにアプリ本体を表示する（「認証無効モード（ローカル開発用）」参照）
 1. SecureStorageに有効期限内（`exp`未経過）のJWTがあれば再利用する
 2. `.env`の`ACCESS_KEY`が設定されていれば、ルートA（`POST /auth/token`）へ自動送信する
    - 成功: JWTを保存してアプリ本体を表示する
@@ -62,6 +63,23 @@ Flutter アプリを feature-first で整理し、API 呼び出しは `lib/confi
 - レスポンスが401の場合、`ApiException`をそのまま投げるのではなく、認証系の共通ハンドラ（`AuthController`）を通じて以下を行う
   - AccessKeyが利用可能であれば自動的にルートAで再取得し、元のリクエストを1回だけリトライする
   - 再取得に失敗する場合、またはAccessKeyが無い場合はSecureStorageのJWTを破棄し、`AuthGate`経由でログイン画面へ遷移させる
+- 認証無効モードでは、`Authorization`ヘッダーの付与と401時の再取得・ログイン誘導をいずれも行わず、401は他のエラーと同様に`ApiException`として送出する
+
+### 認証無効モード（ローカル開発用）
+
+ローカルAPIサーバー（fasse_back）は認証不要で動作するため、ローカル開発時に認証処理全体をスキップするモードを設ける。
+
+- 判定値は`AppConfig.authDisabled`（`lib/config/app_config.dart`）で提供する
+  - `bool.fromEnvironment('DISABLE_AUTH') && !kReleaseMode`とする。`--dart-define=DISABLE_AUTH=true`指定時のみ有効で、リリースビルドでは常に`false`になる
+  - コンパイル時定数とし、`.env`からは読み込まない（`.env`はアセットとしてビルド成果物に含まれるため、誤設定でstg向け成果物の認証が外れることを防ぐ）
+- `AuthSession`・`ApiClient`はコンストラクタ引数`authDisabled`（省略時`AppConfig.authDisabled`）で判定値を受け取る。単体テストで両モードを切り替えて検証できるようにするため
+- `AuthSession`
+  - `bootstrap()`: 認証無効モードでは、WARNログ（認証無効モードで起動した旨）を出力し、ただちに`AuthStatus.authenticated`とする。`JwtStore`・`AuthRepository`は呼び出さない
+  - `handleUnauthorized()`: 認証無効モードでは呼び出されない前提とするが、呼び出された場合も状態を変更せず`false`を返す（ログイン画面へ遷移させない）
+- `ApiClient`
+  - `_headers()`: 認証無効モードでは`Authorization`ヘッダーを付与しない
+  - `_send()`: 認証無効モードでは401時の`handleUnauthorized()`呼び出し・リトライを行わない
+- `LoginScreen`・`AuthRepository`・`JwtStore`は変更しない
 
 ### PKCE
 
@@ -182,6 +200,18 @@ flutter run --dart-define=API_BASE_URL=https://<api-id>.execute-api.<region>.ama
 - `ACCESS_KEY`は`.env`にのみ保持し、`--dart-define`では注入しない（Gitにコミットしない値のため、ビルドコマンドの引数には残さない）
 - ローカル開発時は`.env`にAccessKeyを設定することで、起動時に自動的にJWTを取得できる（「認証」節参照）
 - stg向けビルド（`flutter build web --dart-define=...`）を行う際は、`.env`に実際のAccessKeyを含めないこと。`pubspec.yaml`の`assets`に`.env`が含まれるため、ビルド時は値を空にするか`.env.dummy`相当の内容にする（fasse_infra側のNFR-003/REQ-306に対応する運用ルール）
+
+### 認証無効モード（`DISABLE_AUTH`）
+
+```bash
+flutter run -d web-server --web-port=5000 \
+  --dart-define=API_BASE_URL=http://localhost:8080 \
+  --dart-define=DISABLE_AUTH=true
+```
+
+- ローカルAPIサーバー（fasse_back）へ接続する場合に指定する（「認証無効モード（ローカル開発用）」参照）
+- `--dart-define`でのみ注入し、`.env`では受け付けない。リリースビルドでは指定しても無効
+- VS Codeの起動構成（`.vscode/launch.json`）の「fasse_back 接続 (localhost:8080)」に設定済みとする
 
 ### Cognito設定（`COGNITO_DOMAIN` / `COGNITO_CLIENT_ID`）
 

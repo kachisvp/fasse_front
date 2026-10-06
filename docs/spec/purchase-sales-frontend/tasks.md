@@ -51,3 +51,14 @@
 - [x] `flutter analyze` / `flutter test` を通す（`test/widget_test.dart`は`AuthGate`を経由しないよう`HomeScreen`を直接pumpする形に修正）
 - [ ] （前提条件・fasse_infra側対応）Cognito App Client（publicクライアント・Authorization Code + PKCE）・Hosted UIドメイン・Callback URL（`web/auth_callback.html`のURL）の設定を依頼する
 - [ ] stg環境で疎通確認する（AccessKeyパス・Cognitoパスの双方、および401時の再取得動作）
+
+## 6. 認証無効モード（ローカル開発用）
+
+- [ ] `lib/config/app_config.dart`: `authDisabled`（`bool.fromEnvironment('DISABLE_AUTH') && !kReleaseMode`）を追加する
+- [ ] `lib/features/auth/auth_session.dart`: コンストラクタ引数`authDisabled`を追加し、`bootstrap()`で認証無効時はWARNログ出力のうえ即`authenticated`とする。`handleUnauthorized()`は認証無効時に状態を変更せず`false`を返す
+- [ ] `lib/shared/api/api_client.dart`: コンストラクタ引数`authDisabled`を追加し、認証無効時は`Authorization`ヘッダー付与と401時の再取得を行わない
+- [ ] `.vscode/launch.json`: 「fasse_back 接続 (localhost:8080)」に`--dart-define=DISABLE_AUTH=true`を追加し、stgでJWTを取得してから切り替える手順（「stg で JWT 取得」構成とコメント）を整理する
+- [ ] テスト: `test/features/auth/auth_session_test.dart`を追加する（認証無効時: 即`authenticated`になり`JwtStore`・`AuthRepository`が呼ばれない／`handleUnauthorized()`が`false`を返しログイン画面へ遷移しない。認証有効時: 既存フロー（保存済みJWT再利用・AccessKey試行・`needsLogin`）が維持される）
+- [ ] テスト: `test/shared/api/api_client_test.dart`を追加する（`MockClient`を用い、認証無効時に`Authorization`ヘッダーが付与されないこと・401が`ApiException`として送出されること、認証有効時にヘッダーが付与されること）
+- [ ] `flutter analyze` / `flutter test` を通す
+- [ ] ローカル（`localhost:8080`）で、ログイン画面を経由せず各画面の一覧取得ができることを確認する
