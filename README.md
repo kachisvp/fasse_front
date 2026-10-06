@@ -8,7 +8,9 @@
 flutter clean
 flutter pub get
 flutter build web
-flutter run -d chrome
+# flutter run -d chrome
+flutter run -d web-server --web-port=5000 --dart-define=API_BASE_URL=http://localhost:8080 --dart-define=DISABLE_AUTH=true
+# flutter run -d web-server --web-port=5000 --dart-define=API_BASE_URL=https://ut8q9ugul0.execute-api.ap-northeast-1.amazonaws.com/stg/
 ```
 
 # Windows
@@ -17,7 +19,9 @@ flutter run -d chrome
 flutter clean
 flutter pub get
 flutter build web
-flutter run -d chrome
+# flutter run -d chrome
+flutter run -d web-server --web-port=5000 --dart-define=API_BASE_URL=http://localhost:8080 --dart-define=DISABLE_AUTH=true
+# flutter run -d web-server --web-port=5000 --dart-define=API_BASE_URL=https://ut8q9ugul0.execute-api.ap-northeast-1.amazonaws.com/stg/
 ```
 
 </details>
